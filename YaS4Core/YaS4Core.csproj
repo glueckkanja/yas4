@@ -39,8 +39,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="CloudSync.cs" />
+    <Compile Include="FileProperties.cs" />
+    <Compile Include="FileSystemStorageProvider.cs" />
+    <Compile Include="IStorageProvider.cs" />
+    <Compile Include="ListDiff.cs" />
+    <Compile Include="ListDiffAction.cs" />
+    <Compile Include="ListDiffActionType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StorageAction.cs" />
+    <Compile Include="StorageOperation.cs" />
+    <Compile Include="StorageProviderBase.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\aws-sdk-net\AWSSDK\AWSSDKSrc-S3only.csproj">
+      <Project>{d730418c-ffe2-45be-9f1e-2ccaf7391636}</Project>
+      <Name>AWSSDKSrc-S3only</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
