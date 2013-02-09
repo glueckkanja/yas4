@@ -24,14 +24,43 @@ namespace YaS4Core
             IList<FileProperties> source = await SourceSite.ListObjects(ct).ConfigureAwait(false);
             IList<FileProperties> destination = await DestinationSite.ListObjects(ct).ConfigureAwait(false);
 
-            // why src<>dst swapped? - thats actually correct:
-            // listdiff works like this: what is my src state (DestinationSite) and 
-            // how do i get to my dst state (SourceSite)
-            var diff = new ListDiff<FileProperties, FileProperties>(destination, source, (s, d) => Equals(s, d));
+            var srcKeys = new HashSet<string>(source.Select(x => x.Key));
+            var dstListing = destination.ToDictionary(x => x.Key, x => x);
 
-            IEnumerable<StorageAction> actions = diff.Actions.Select(StorageAction.Convert);
+            var actions = new List<StorageAction>();
 
-            return DestinationSite.MakeActionsAtomic(actions).OrderBy(x => x.Properties.Size).ToList();
+            foreach (FileProperties src in source)
+            {
+                FileProperties dst;
+
+                if (!dstListing.TryGetValue(src.Key, out dst))
+                {
+                    actions.Add(new StorageAction(src, StorageOperation.Add));
+                    continue;
+                }
+
+                if (!Equals(src, dst))
+                {
+                    actions.Add(new StorageAction(src, StorageOperation.Overwrite));
+                }
+                else
+                {
+                    actions.Add(new StorageAction(dst, StorageOperation.Keep));
+                }
+            }
+
+            foreach (FileProperties dst in destination)
+            {
+                if (!srcKeys.Contains(dst.Key))
+                {
+                    actions.Add(new StorageAction(dst, StorageOperation.Delete));
+                }
+            }
+
+            return actions
+                .OrderByDescending(x => x.Operation == StorageOperation.Delete)
+                .ThenBy(x => x.Properties.Size)
+                .ToList();
         }
 
         public async Task ExecuteSync(IEnumerable<StorageAction> actions,

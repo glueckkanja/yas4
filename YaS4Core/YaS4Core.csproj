@@ -43,9 +43,6 @@
     <Compile Include="FileProperties.cs" />
     <Compile Include="FileSystemStorageProvider.cs" />
     <Compile Include="IStorageProvider.cs" />
-    <Compile Include="ListDiff.cs" />
-    <Compile Include="ListDiffAction.cs" />
-    <Compile Include="ListDiffActionType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StorageAction.cs" />
     <Compile Include="StorageOperation.cs" />
