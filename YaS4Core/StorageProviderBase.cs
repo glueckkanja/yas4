@@ -14,28 +14,27 @@ namespace YaS4Core
 
         public virtual IEnumerable<StorageAction> OptimizeActions(IEnumerable<StorageAction> actions)
         {
-            var act = new Stack<StorageAction>();
-
-            StorageAction last = default(StorageAction);
+            var act = new List<StorageAction>();
 
             foreach (StorageAction action in actions)
             {
-                if (last.Properties.Key == action.Properties.Key &&
-                    last.Operation == StorageOperation.Delete &&
-                    action.Operation == StorageOperation.Add)
+                if (action.Operation == StorageOperation.Add)
                 {
-                    act.Pop();
-                    act.Push(new StorageAction(action.Properties, StorageOperation.Overwrite));
-                }
-                else
-                {
-                    act.Push(action);
+                    int idx = act.FindIndex(x => x.Properties.Key == action.Properties.Key &&
+                                                 x.Operation == StorageOperation.Delete);
+
+                    if (idx >= 0)
+                    {
+                        act.RemoveAt(idx);
+                        act.Add(new StorageAction(action.Properties, StorageOperation.Overwrite));
+                        continue;
+                    }
                 }
 
-                last = action;
+                act.Add(action);
             }
 
-            return act.Reverse();
+            return act;
         }
 
         public abstract Task<Stream> ReadObject(FileProperties properties, CancellationToken ct);
