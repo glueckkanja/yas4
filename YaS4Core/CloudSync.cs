@@ -31,7 +31,7 @@ namespace YaS4Core
 
             IEnumerable<StorageAction> actions = diff.Actions.Select(StorageAction.Convert);
 
-            return DestinationSite.OptimizeActions(actions).ToList();
+            return DestinationSite.OptimizeActions(actions).OrderBy(x => x.Properties.Size).ToList();
         }
 
         public async Task ExecuteSync(IEnumerable<StorageAction> actions,
