@@ -12,7 +12,7 @@ namespace YaS4Core
         public abstract Task<IList<FileProperties>> ListObjects(CancellationToken ct);
         public abstract Task<IList<FileProperties>> ListObjects(string localKeyPrefix, CancellationToken ct);
 
-        public virtual IEnumerable<StorageAction> OptimizeActions(IEnumerable<StorageAction> actions)
+        public virtual IEnumerable<StorageAction> MakeActionsAtomic(IEnumerable<StorageAction> actions)
         {
             var act = new List<StorageAction>();
 
