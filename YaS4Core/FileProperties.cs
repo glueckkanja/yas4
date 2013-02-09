@@ -31,5 +31,10 @@ namespace YaS4Core
                 return hashCode;
             }
         }
+
+        public override string ToString()
+        {
+            return string.Format("{0} (ts: {1}; size: {2} bytes)", Key, Timestamp, Size);
+        }
     }
 }
