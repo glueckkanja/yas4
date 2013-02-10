@@ -95,7 +95,7 @@ namespace YaS4Core
 
         private static string SanitizeKey(string key)
         {
-            return key.Replace('\\', '/').TrimStart('/').Trim();
+            return key.Replace('\\', '/').Trim().TrimStart('/').Trim();
         }
 
         private string ResolveKey(string path)
