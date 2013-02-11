@@ -115,7 +115,7 @@ namespace YaS4Core
                 if (ct.IsCancellationRequested)
                     break;
 
-                S3Object meta = objects.FirstOrDefault(x => MetaKeyToKey(x.Key) == x.Key);
+                S3Object meta = objects.FirstOrDefault(x => MetaKeyToKey(x.Key) == obj.Key);
 
                 if (obj == null && meta != null)
                 {
@@ -155,9 +155,9 @@ namespace YaS4Core
         private string MetaKeyToKey(string key)
         {
             if (!key.Contains(MetaKeyPrefix))
-                return key;
+                return null;
 
-            key = key.Substring(MetaKeyPrefix.Length);
+            key = key.Replace(MetaKeyPrefix, "");
 
             Match match = Regex.Match(key, @" \(([0-9]+)\)$");
 
@@ -194,8 +194,8 @@ namespace YaS4Core
 
         private string ResolveLocalMetaKey(FileProperties properties)
         {
-            string key = string.Format(MetaKeyPrefix + "{0} ({1})", properties.Key, properties.Timestamp.UtcTicks);
-            return Path.Combine(_rootKey, key).Replace('\\', '/');
+            string key = string.Format("{0} ({1})", properties.Key, properties.Timestamp.UtcTicks);
+            return Path.Combine(_rootKey, Path.Combine(MetaKeyPrefix, key)).Replace('\\', '/');
         }
     }
 }
