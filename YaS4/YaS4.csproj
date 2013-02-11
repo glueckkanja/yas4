@@ -56,6 +56,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -77,6 +78,10 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\aws-sdk-net\AWSSDK\AWSSDKSrc-S3only.csproj">
+      <Project>{d730418c-ffe2-45be-9f1e-2ccaf7391636}</Project>
+      <Name>AWSSDKSrc-S3only</Name>
+    </ProjectReference>
     <ProjectReference Include="..\YaS4Core\YaS4Core.csproj">
       <Project>{e007c49a-01ae-4c1e-9382-21ad37170b7e}</Project>
       <Name>YaS4Core</Name>
