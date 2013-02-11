@@ -26,10 +26,14 @@ namespace YaS4Core
             return Task.Run(() => ListObjectImpl(localKeyPrefix, ct));
         }
 
-        public override Task<Stream> ReadObject(FileProperties properties, CancellationToken ct)
+        public override async Task ReadObject(FileProperties properties, Stream stream, CancellationToken ct)
         {
             string path = ResolvePath(properties.Key);
-            return Task.FromResult((Stream) File.OpenRead(path));
+
+            using (FileStream file = File.OpenRead(path))
+            {
+                await file.CopyToAsync(stream);
+            }
         }
 
         public override async Task AddObject(FileProperties properties, Stream stream, bool overwrite,

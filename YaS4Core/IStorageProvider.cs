@@ -12,7 +12,7 @@ namespace YaS4Core
         Task<IList<FileProperties>> ListObjects(CancellationToken ct);
         Task<IList<FileProperties>> ListObjects(string localKeyPrefix, CancellationToken ct);
 
-        Task<Stream> ReadObject(FileProperties properties, CancellationToken ct);
+        Task ReadObject(FileProperties properties, Stream stream, CancellationToken ct);
         Task AddObject(FileProperties properties, Stream stream, bool overwrite, CancellationToken ct);
         Task DeleteObject(FileProperties properties, CancellationToken ct);
     }

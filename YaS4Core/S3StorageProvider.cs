@@ -33,22 +33,17 @@ namespace YaS4Core
             return Task.Run(() => ListObjectImpl(localKeyPrefix, ct));
         }
 
-        public override async Task<Stream> ReadObject(FileProperties properties, CancellationToken ct)
+        public override async Task ReadObject(FileProperties properties, Stream stream, CancellationToken ct)
         {
             string key = ResolveLocalKey(properties.Key);
-
-            FileStream file = File.Open(Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None);
 
             using (var util = new TransferUtility(_s3))
             {
                 using (Stream srcStream = await util.OpenStreamAsync(_bucket, key))
                 {
-                    await srcStream.CopyToAsync(file);
+                    await srcStream.CopyToAsync(stream);
                 }
             }
-
-            file.Position = 0;
-            return file;
         }
 
         public override async Task AddObject(FileProperties properties, Stream stream, bool overwrite,

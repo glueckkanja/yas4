@@ -97,9 +97,42 @@ namespace YaS4Core
 
         private async Task AddImpl(StorageAction action, bool overwrite, CancellationToken ct)
         {
-            using (Stream src = await SourceSite.ReadObject(action.Properties, ct).ConfigureAwait(false))
+            string path = null;
+
+            try
             {
-                await DestinationSite.AddObject(action.Properties, src, overwrite, ct).ConfigureAwait(false);
+                Stream src;
+
+                // > 1mb?
+                if (action.Properties.Size > Math.Pow(2, 20))
+                {
+                    path = Path.GetTempFileName();
+                    src = File.Open(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+                }
+                else
+                {
+                    src = new MemoryStream();
+                }
+
+                using (src)
+                {
+                    await SourceSite.ReadObject(action.Properties, src, ct).ConfigureAwait(false);
+                    src.Position = 0;
+                    await DestinationSite.AddObject(action.Properties, src, overwrite, ct).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (path != null)
+                {
+                    try
+                    {
+                        File.Delete(path);
+                    }
+                    catch
+                    {
+                    }
+                }
             }
         }
 
