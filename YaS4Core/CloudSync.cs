@@ -39,13 +39,13 @@ namespace YaS4Core
                     continue;
                 }
 
-                if (!Equals(src, dst))
+                if (src.Key == dst.Key && src.Size == dst.Size && src.Timestamp <= dst.Timestamp)
                 {
-                    actions.Add(new StorageAction(src, StorageOperation.Overwrite));
+                    actions.Add(new StorageAction(dst, StorageOperation.Keep));
                 }
                 else
                 {
-                    actions.Add(new StorageAction(dst, StorageOperation.Keep));
+                    actions.Add(new StorageAction(src, StorageOperation.Overwrite));
                 }
             }
 
