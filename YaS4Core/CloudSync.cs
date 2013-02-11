@@ -9,8 +9,11 @@ namespace YaS4Core
 {
     public class CloudSync
     {
-        public CloudSync(IStorageProvider sourceSite, IStorageProvider destinationSite)
+        private readonly CancellationToken _ct;
+
+        public CloudSync(IStorageProvider sourceSite, IStorageProvider destinationSite, CancellationToken ct)
         {
+            _ct = ct;
             SourceSite = sourceSite;
             DestinationSite = destinationSite;
         }
@@ -18,16 +21,20 @@ namespace YaS4Core
         public IStorageProvider SourceSite { get; private set; }
         public IStorageProvider DestinationSite { get; private set; }
 
-        public async Task<IList<StorageAction>> ComputeDestinationActions(
-            CancellationToken ct = default(CancellationToken))
+        public async Task<IList<StorageAction>> ComputeDestinationActions()
         {
-            IList<FileProperties> source = await SourceSite.ListObjects(ct).ConfigureAwait(false);
-            IList<FileProperties> destination = await DestinationSite.ListObjects(ct).ConfigureAwait(false);
+            var actions = new List<StorageAction>();
+
+            IList<FileProperties> source = await SourceSite.ListObjects(_ct).ConfigureAwait(false);
+
+            if (_ct.IsCancellationRequested) return actions;
+
+            IList<FileProperties> destination = await DestinationSite.ListObjects(_ct).ConfigureAwait(false);
+
+            if (_ct.IsCancellationRequested) return actions;
 
             var srcKeys = new HashSet<string>(source.Select(x => x.Key));
             var dstListing = destination.ToDictionary(x => x.Key, x => x);
-
-            var actions = new List<StorageAction>();
 
             foreach (FileProperties src in source)
             {
@@ -63,27 +70,26 @@ namespace YaS4Core
                 .ToList();
         }
 
-        public async Task ExecuteSync(IEnumerable<StorageAction> actions,
-                                      CancellationToken ct = default(CancellationToken))
+        public async Task ExecuteSync(IEnumerable<StorageAction> actions)
         {
             foreach (StorageAction action in actions)
             {
-                if (ct.IsCancellationRequested)
+                if (_ct.IsCancellationRequested)
                     break;
 
                 Task task = null;
 
                 if (action.Operation == StorageOperation.Add)
                 {
-                    task = AddImpl(action, false, ct);
+                    task = AddImpl(action, false);
                 }
                 else if (action.Operation == StorageOperation.Overwrite)
                 {
-                    task = AddImpl(action, true, ct);
+                    task = AddImpl(action, true);
                 }
                 else if (action.Operation == StorageOperation.Delete)
                 {
-                    task = DeleteImpl(action, ct);
+                    task = DeleteImpl(action);
                 }
 
                 if (task != null)
@@ -95,7 +101,7 @@ namespace YaS4Core
             await Task.Run(() => { }).ConfigureAwait(false);
         }
 
-        private async Task AddImpl(StorageAction action, bool overwrite, CancellationToken ct)
+        private async Task AddImpl(StorageAction action, bool overwrite)
         {
             string path = null;
 
@@ -116,9 +122,9 @@ namespace YaS4Core
 
                 using (src)
                 {
-                    await SourceSite.ReadObject(action.Properties, src, ct).ConfigureAwait(false);
+                    await SourceSite.ReadObject(action.Properties, src, _ct).ConfigureAwait(false);
                     src.Position = 0;
-                    await DestinationSite.AddObject(action.Properties, src, overwrite, ct).ConfigureAwait(false);
+                    await DestinationSite.AddObject(action.Properties, src, overwrite, _ct).ConfigureAwait(false);
                 }
             }
             finally
@@ -136,9 +142,9 @@ namespace YaS4Core
             }
         }
 
-        private async Task DeleteImpl(StorageAction action, CancellationToken ct)
+        private async Task DeleteImpl(StorageAction action)
         {
-            await DestinationSite.DeleteObject(action.Properties, ct).ConfigureAwait(false);
+            await DestinationSite.DeleteObject(action.Properties, _ct).ConfigureAwait(false);
         }
     }
 }

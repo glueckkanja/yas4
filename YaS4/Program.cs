@@ -1,35 +1,120 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Amazon;
 using Amazon.S3;
+using Mono.Options;
 using YaS4Core;
 
 namespace YaS4
 {
     internal class Program
     {
-        private static void Main(string[] args)
+        private static readonly CancellationTokenSource Ctc = new CancellationTokenSource();
+
+        private static int Main(string[] args)
         {
-            var client = new AmazonS3Client(
-                "",
-                "",
-                RegionEndpoint.EUWest1);
+            Console.CancelKeyPress += (_, e) =>
+                {
+                    e.Cancel = true;
+                    Ctc.Cancel();
+                };
 
-            var ca = new CloudSync(new FileSystemStorageProvider(@"..\..\..\_stuff\sync"),
-                                   new S3StorageProvider(client, "spielbucket", "sync2"));
+            var cmd = new Dictionary<string, object>();
 
-            IList<StorageAction> result = ca.ComputeDestinationActions().Result;
+            var p = new OptionSet
+                {
+                    //{
+                    //    "src=|source=", "source account credentials (account,key) or 'dev'",
+                    //    s => cmd["source"] = ParseAccount(s)
+                    //},
+                    //{
+                    //    "dst=|destination=", "destination account credentials (account,key) or 'dev'",
+                    //    s => cmd["destination"] = ParseAccount(s)
+                    //},
+                    {
+                        "h|help", "show this message and exit",
+                        s => cmd["help"] = s
+                    }
+                };
 
-            foreach (StorageAction storageAction in result)
+            p.Parse(args);
+
+            if (cmd.ContainsKey("help") && cmd["help"] != null)
             {
-                Console.WriteLine(storageAction);
+                ShowHelp(p);
+                return 0;
             }
 
-            Console.WriteLine("continue to sync");
-            Console.ReadLine();
+            //if (cmd.ContainsKey("source") && cmd.ContainsKey("destination"))
+            {
+                //var src = cmd["source"];
+                //var dst = cmd["destination"];
 
-            ca.ExecuteSync(result).Wait();
+                return MainExec().Result;
+            }
+
+            ShowHelp(p);
+            return 0;
+        }
+
+        private static async Task<int> MainExec()
+        {
+            Exception ex = null;
+
+            try
+            {
+                var client = new AmazonS3Client(
+                    "",
+                    "",
+                    RegionEndpoint.EUWest1);
+
+                var ca = new CloudSync(new FileSystemStorageProvider(@"..\..\..\_stuff\sync"),
+                                       new S3StorageProvider(client, "spielbucket", "sync2"),
+                                       Ctc.Token);
+
+                IList<StorageAction> result = ca.ComputeDestinationActions().Result;
+
+                foreach (StorageAction storageAction in result)
+                {
+                    Console.WriteLine(storageAction);
+                }
+
+                Console.WriteLine("continue to sync");
+                Console.ReadLine();
+
+                ca.ExecuteSync(result).Wait();
+            }
+            catch (Exception e)
+            {
+                ex = e;
+            }
+
+            if (Ctc.IsCancellationRequested)
+            {
+                Console.WriteLine("User cancelled");
+                return 1;
+            }
+
+            if (ex != null)
+            {
+                Console.Error.WriteLine("General error");
+                Console.Error.WriteLine(ex);
+                return 100;
+            }
+
+            return 0;
+        }
+
+        private static void ShowHelp(OptionSet p)
+        {
+            Console.WriteLine("yas4");
+            Console.WriteLine("");
+            Console.WriteLine();
+
+            p.WriteOptionDescriptions(Console.Out);
         }
     }
 }
