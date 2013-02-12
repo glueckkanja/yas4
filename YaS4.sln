@@ -5,7 +5,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YaS4", "YaS4\YaS4.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YaS4Core", "YaS4Core\YaS4Core.csproj", "{E007C49A-01AE-4C1E-9382-21AD37170B7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSSDKSrc-S3only", "aws-sdk-net\AWSSDK\AWSSDKSrc-S3only.csproj", "{D730418C-FFE2-45BE-9F1E-2CCAF7391636}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{B91F5D7C-8518-41C8-80E4-BEEC730F2C22}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +26,6 @@ Global
 		{E007C49A-01AE-4C1E-9382-21AD37170B7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E007C49A-01AE-4C1E-9382-21AD37170B7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E007C49A-01AE-4C1E-9382-21AD37170B7E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D730418C-FFE2-45BE-9F1E-2CCAF7391636}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D730418C-FFE2-45BE-9F1E-2CCAF7391636}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D730418C-FFE2-45BE-9F1E-2CCAF7391636}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D730418C-FFE2-45BE-9F1E-2CCAF7391636}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
