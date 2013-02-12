@@ -16,11 +16,11 @@ namespace YaS4Core
         private readonly string _rootKey;
         private readonly AmazonS3 _s3;
 
-        public S3StorageProvider(AmazonS3 s3, string bucket, string rootKey)
+        public S3StorageProvider(AmazonS3 s3, string bucket, string rootKey = null)
         {
             _s3 = s3;
             _bucket = bucket;
-            _rootKey = SanitizeKey(rootKey);
+            _rootKey = SanitizeKey(rootKey ?? "");
         }
 
         public override Task<IList<FileProperties>> ListObjects(CancellationToken ct)
@@ -39,9 +39,9 @@ namespace YaS4Core
 
             using (var util = new TransferUtility(_s3))
             {
-                using (Stream srcStream = await util.OpenStreamAsync(_bucket, key))
+                using (Stream srcStream = await util.OpenStreamAsync(_bucket, key).ConfigureAwait(false))
                 {
-                    await srcStream.CopyToAsync(stream);
+                    await srcStream.CopyToAsync(stream, 1*1024*1024, ct).ConfigureAwait(false);
                 }
             }
         }
@@ -62,7 +62,7 @@ namespace YaS4Core
 
             using (var util = new TransferUtility(_s3))
             {
-                await util.UploadAsync(request);
+                await util.UploadAsync(request).ConfigureAwait(false);
             }
         }
 
@@ -88,7 +88,7 @@ namespace YaS4Core
             var request = new ListObjectsRequest
                 {
                     BucketName = _bucket,
-                    Prefix = _rootKey + "/"
+                    Prefix = SanitizeKey(_rootKey + "/")
                 };
 
             IList<S3Object> objects = await _s3.ListAllObjectsAsync(request, ct).ConfigureAwait(false);
@@ -97,6 +97,12 @@ namespace YaS4Core
             {
                 if (ct.IsCancellationRequested)
                     break;
+
+                if (obj.Size == 0 && obj.Key.EndsWith("/"))
+                {
+                    // one type of virtual folder
+                    continue;
+                }
 
                 DateTimeOffset timestamp = DateTimeOffset.Parse(obj.LastModified);
 

@@ -12,7 +12,7 @@ namespace YaS4Core
 
         public override string ToString()
         {
-            return string.Format("{0} (ts: {1}; size: {2} bytes)", Key, Timestamp, Size);
+            return string.Format("{0} ({1} bytes)", Key, Size);
         }
     }
 }

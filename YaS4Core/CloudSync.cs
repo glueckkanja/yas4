@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -20,6 +21,9 @@ namespace YaS4Core
 
         public IStorageProvider SourceSite { get; private set; }
         public IStorageProvider DestinationSite { get; private set; }
+
+        public event EventHandler<ActionEventArgs> ActionStarted;
+        public event EventHandler<ActionEventArgs> ActionFinished;
 
         public async Task<IList<StorageAction>> ComputeDestinationActions()
         {
@@ -97,8 +101,6 @@ namespace YaS4Core
                     await task.ConfigureAwait(false);
                 }
             }
-
-            await Task.Run(() => { }).ConfigureAwait(false);
         }
 
         private async Task AddImpl(StorageAction action, bool overwrite)
@@ -122,9 +124,17 @@ namespace YaS4Core
 
                 using (src)
                 {
+                    OnActionStarted(action);
+
+                    Stopwatch sw = Stopwatch.StartNew();
+
                     await SourceSite.ReadObject(action.Properties, src, _ct).ConfigureAwait(false);
                     src.Position = 0;
                     await DestinationSite.AddObject(action.Properties, src, overwrite, _ct).ConfigureAwait(false);
+
+                    sw.Stop();
+
+                    OnActionFinished(action, sw);
                 }
             }
             finally
@@ -145,6 +155,26 @@ namespace YaS4Core
         private async Task DeleteImpl(StorageAction action)
         {
             await DestinationSite.DeleteObject(action.Properties, _ct).ConfigureAwait(false);
+        }
+
+        private void OnActionStarted(StorageAction action)
+        {
+            EventHandler<ActionEventArgs> temp = ActionStarted;
+
+            if (temp != null)
+            {
+                temp(this, new ActionEventArgs(action, TimeSpan.Zero));
+            }
+        }
+
+        private void OnActionFinished(StorageAction action, Stopwatch sw)
+        {
+            EventHandler<ActionEventArgs> temp = ActionFinished;
+
+            if (temp != null)
+            {
+                temp(this, new ActionEventArgs(action, sw.Elapsed));
+            }
         }
     }
 }

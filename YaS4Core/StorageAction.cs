@@ -16,7 +16,7 @@ namespace YaS4Core
 
         public override string ToString()
         {
-            return string.Format("{0:-2} {1}", Operation.ToString()[0], Properties);
+            return string.Format("{0} {1}", Operation.ToString()[0], Properties);
         }
     }
 }
