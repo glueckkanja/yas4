@@ -47,6 +47,8 @@ namespace YaS4Core
 
             using (FileStream dst = File.Open(path, mode, FileAccess.Write, FileShare.None))
             {
+                dst.SetLength(properties.Size);
+                dst.Position = 0;
                 await stream.CopyToAsync(dst).ConfigureAwait(false);
             }
 
