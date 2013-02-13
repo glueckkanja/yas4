@@ -17,10 +17,12 @@ namespace YaS4Core
             _ct = ct;
             SourceSite = sourceSite;
             DestinationSite = destinationSite;
+            MaxParallelOperations = 4;
         }
 
         public IStorageProvider SourceSite { get; private set; }
         public IStorageProvider DestinationSite { get; private set; }
+        public int MaxParallelOperations { get; set; }
 
         public event EventHandler<ActionEventArgs> ActionStarted;
         public event EventHandler<ActionEventArgs> ActionFinished;
@@ -76,31 +78,17 @@ namespace YaS4Core
 
         public async Task ExecuteSync(IEnumerable<StorageAction> actions)
         {
-            foreach (StorageAction action in actions)
-            {
-                if (_ct.IsCancellationRequested)
-                    break;
+            await ForEachPooled(actions, MaxParallelOperations, _ct, (action, ct) =>
+                {
+                    if (action.Operation == StorageOperation.Add)
+                        return AddImpl(action, false);
+                    if (action.Operation == StorageOperation.Overwrite)
+                        return AddImpl(action, true);
+                    if (action.Operation == StorageOperation.Delete)
+                        return DeleteImpl(action);
 
-                Task task = null;
-
-                if (action.Operation == StorageOperation.Add)
-                {
-                    task = AddImpl(action, false);
-                }
-                else if (action.Operation == StorageOperation.Overwrite)
-                {
-                    task = AddImpl(action, true);
-                }
-                else if (action.Operation == StorageOperation.Delete)
-                {
-                    task = DeleteImpl(action);
-                }
-
-                if (task != null)
-                {
-                    await task.ConfigureAwait(false);
-                }
-            }
+                    return Task.FromResult(0);
+                }).ConfigureAwait(false);
         }
 
         private async Task AddImpl(StorageAction action, bool overwrite)
@@ -116,6 +104,10 @@ namespace YaS4Core
                 {
                     path = Path.GetTempFileName();
                     src = File.Open(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+
+                    // allocate
+                    src.SetLength(action.Properties.Size);
+                    src.Position = 0;
                 }
                 else
                 {
@@ -174,6 +166,85 @@ namespace YaS4Core
             if (temp != null)
             {
                 temp(this, new ActionEventArgs(action, sw.Elapsed));
+            }
+        }
+
+        internal static async Task ForEachPooled<T>(
+            IEnumerable<T> values, int poolSize, CancellationToken ct, Func<T, CancellationToken, Task> action)
+        {
+            var buffer = new Task[poolSize];
+
+            for (int i = 0; i < poolSize; i++)
+            {
+                buffer[i] = Task.FromResult(0);
+            }
+
+            foreach (T value in values)
+            {
+                while (true)
+                {
+                    bool started = false;
+
+                    for (int i = 0; i < buffer.Length; i++)
+                    {
+                        Task task = buffer[i];
+
+                        if (task.IsCompleted || task.IsCanceled || task.IsFaulted)
+                        {
+                            using (task) await task.ConfigureAwait(false);
+
+                            task = action(value, ct);
+                            buffer[i] = task;
+                            started = true;
+                            break;
+                        }
+                    }
+
+                    if (started)
+                        break;
+
+                    await Task.WhenAny(buffer).ConfigureAwait(false);
+                }
+            }
+
+            await Task.WhenAll(buffer).ConfigureAwait(false);
+        }
+
+        internal sealed class AsyncLock
+        {
+            // http://blogs.msdn.com/b/pfxteam/archive/2012/02/12/10266988.aspx
+
+            private readonly Task<IDisposable> m_releaser;
+            private readonly SemaphoreSlim m_semaphore = new SemaphoreSlim(1, 1);
+
+            public AsyncLock()
+            {
+                m_releaser = Task.FromResult((IDisposable) new Releaser(this));
+            }
+
+            public Task<IDisposable> LockAsync()
+            {
+                Task wait = m_semaphore.WaitAsync();
+                return wait.IsCompleted
+                           ? m_releaser
+                           : wait.ContinueWith((_, state) => (IDisposable) state,
+                                               m_releaser.Result, CancellationToken.None,
+                                               TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+
+            private sealed class Releaser : IDisposable
+            {
+                private readonly AsyncLock m_toRelease;
+
+                internal Releaser(AsyncLock toRelease)
+                {
+                    m_toRelease = toRelease;
+                }
+
+                public void Dispose()
+                {
+                    m_toRelease.m_semaphore.Release();
+                }
             }
         }
     }
