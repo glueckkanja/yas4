@@ -25,6 +25,13 @@ namespace YaS4Core
             return Task.Factory.FromAsync(ar, utility.EndUpload);
         }
 
+        public static Task<GetObjectResponse> GetObjectAsync(
+            this AmazonS3 client, GetObjectRequest request)
+        {
+            IAsyncResult ar = client.BeginGetObject(request, null, null);
+            return Task.Factory.FromAsync<GetObjectResponse>(ar, client.EndGetObject);
+        }
+
         public static Task<DeleteObjectsResponse> DeleteObjectsAsync(
             this AmazonS3 client, DeleteObjectsRequest request)
         {
