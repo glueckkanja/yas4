@@ -71,9 +71,18 @@ namespace YaS4
                     "",
                     RegionEndpoint.EUWest1);
 
-                var ca = new CloudSync(new FileSystemStorageProvider(@"..\..\..\_stuff\sync"),
-                                       new S3StorageProvider(client, "spielbucket", "sync2"),
-                                       Ctc.Token);
+                var ca = new CloudSync(
+                    new S3StorageProvider(client, "spielbucket", "bin"),
+                    new FileSystemStorageProvider(@"D:\sync"),
+                    Ctc.Token);
+
+                ca.ActionFinished +=
+                    (sender, e) =>
+                        {
+                            double kbs = e.Action.Properties.Size/e.Duration.TotalMilliseconds;
+                            Console.WriteLine("{0,6:f0} ms - {1,5:f0} KB/s - {2}",
+                                              e.Duration.TotalMilliseconds, kbs, e.Action);
+                        };
 
                 IList<StorageAction> result = ca.ComputeDestinationActions().Result;
 
